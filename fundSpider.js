@@ -256,9 +256,11 @@ class FundSpider {
     const fundData = [];
 
     const pages = parseInt(pageRes.match(/pages:(\d+),/g)[0].match(/\d+/g)[0]);
-    for (let i = 1; i <= pages; i++) {
+    for (var i = 1; i <= pages; i++) {
+      console.log(`${url}&page=${i}`);
+      
       const pageItemRes = await this.$fetchPro(
-        `${url}pages=${i}`,
+        `${url}&page=${i}`,
         'gb2312'
       ).catch(err => {
         console.log(err);

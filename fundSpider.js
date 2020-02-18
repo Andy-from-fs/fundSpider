@@ -248,49 +248,48 @@ class FundSpider {
     return y + '-' + m + '-' + d;
   }
   // 爬取并解析基金的单位净值，增长率等信息
-  fetchFundUrl(url, callback) {
-    this.$fetch(url, 'gb2312', (err, data) => {
-      let fundData = [];
-      if (!err) {
-        const _page = data.match(/pages:(\d+),/g)[0];
-        const _pageNum = _page.match(/\d+/g)[0];
-        console.log(_pageNum);
-
-        const pages = parseInt(data.match(/pages:(\d+),/g)[0].match(/\d+/g)[0]);
-        console.log(pages, typeof pages);
-        for (let i = 1; i <= pages; i++) {
-          this.$fetch(`${url}pages=${i}`, 'gb2312', (err, data) => {
-            const $ = cheerio.load(
-              '<body>' + data.match(/content:.+,/)[0] + '</body>'
-            );
-            let table = $('body').find('table');
-            let tbody = table.find('tbody');
-            try {
-              console.log(i);
-
-              tbody.find('tr').each((i, trItem) => {
-                let fundItem = {};
-                let tdArray = $(trItem)
-                  .find('td')
-                  .map((j, tdItem) => $(tdItem));
-                fundItem.date = tdArray[0].text(); // 净值日期
-                fundItem.unitNet = tdArray[1].text(); // 单位净值
-                fundItem.accumulatedNet = tdArray[2].text(); // 累计净值
-                fundItem.changePercent = tdArray[3].text(); // 日增长率
-                fundData.push(fundItem);
-              });
-            } catch (e) {
-              console.log(e);
-            }
-          });
-        }
-        console.log(fundData.length);
-
-        callback(null, fundData);
-      } else {
-        callback(err, fundData);
-      }
+  async fetchFundUrl(url, callback) {
+    const pageRes = await this.$fetchPro(url, 'gb2312').catch(err => {
+      console.log(err);
+      callback(err);
     });
+    const fundData = [];
+
+    const pages = parseInt(pageRes.match(/pages:(\d+),/g)[0].match(/\d+/g)[0]);
+    for (let i = 1; i <= pages; i++) {
+      const pageItemRes = await this.$fetchPro(
+        `${url}pages=${i}`,
+        'gb2312'
+      ).catch(err => {
+        console.log(err);
+        callback(err);
+      });
+      // console.log(i);
+      // console.log(pageItemsRes);
+      // const contentStr = pageItemRes.match(/content:".+"/g);
+      // console.log(typeof contentStr);
+
+      const $ = cheerio.load('<body>' + pageItemRes + '</body>');
+      const table = $('body').find('table');
+      const tbody = table.find('tbody');
+      try {
+        tbody.find('tr').each((i, trItem) => {
+          let fundItem = {};
+          let tdArray = $(trItem)
+            .find('td')
+            .map((j,tdItem) => $(tdItem));
+          fundItem.date = tdArray[0].text(); // 净值日期
+          fundItem.unitNet = tdArray[1].text(); // 单位净值
+          fundItem.accumulatedNet = tdArray[2].text(); // 累计净值
+          fundItem.changePercent = tdArray[3].text(); // 日增长率
+          fundData.push(fundItem);
+        });
+      } catch (e) {
+        console.log(e);
+        callback(err);
+      }
+    }
+    callback(null, fundData);
   }
   // 根据基金代码获取其选定日期范围内的基金变动数据
   // 基金代码，开始日期，截止日期，数据个数，回调函数

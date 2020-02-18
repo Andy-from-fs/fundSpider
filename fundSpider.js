@@ -264,10 +264,6 @@ class FundSpider {
         console.log(err);
         callback(err);
       });
-      // console.log(i);
-      // console.log(pageItemsRes);
-      // const contentStr = pageItemRes.match(/content:".+"/g);
-      // console.log(typeof contentStr);
 
       const $ = cheerio.load('<body>' + pageItemRes + '</body>');
       const table = $('body').find('table');
@@ -277,7 +273,7 @@ class FundSpider {
           let fundItem = {};
           let tdArray = $(trItem)
             .find('td')
-            .map((j,tdItem) => $(tdItem));
+            .map((j, tdItem) => $(tdItem));
           fundItem.date = tdArray[0].text(); // 净值日期
           fundItem.unitNet = tdArray[1].text(); // 单位净值
           fundItem.accumulatedNet = tdArray[2].text(); // 累计净值

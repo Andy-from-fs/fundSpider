@@ -237,31 +237,44 @@ class FundSpider {
 	}
 	// 爬取并解析基金的单位净值，增长率等信息
 	fetchFundUrl(url, callback) {
-		this.$fetch(url, "gb2312", (err, body) => {
+		this.$fetch(url, "gb2312", (err, data) => {
 			let fundData = [];
 			if (!err) {
-				const $ = cheerio.load("<body>" + body + "</body>");
-				let table = $("body").find("table");
-				let tbody = table.find("tbody");
-				try {
-					tbody.find("tr").each((i, trItem) => {
-						let fundItem = {};
-						let tdArray = $(trItem)
-							.find("td")
-							.map((j, tdItem) => {
-								return $(tdItem);
+				const _page = data.match(/pages:(\d+),/g)[0];
+				const _pageNum = _page.match(/\d+/g)[0];
+				console.log(_pageNum);
+
+				const pages = parseInt(data.match(/pages:(\d+),/g)[0].match(/\d+/g)[0]);
+				console.log(pages, typeof pages);
+				for (let i = 1; i <= pages; i++) {
+					this.$fetch(`${url}pages=${i}`, "gb2312", (err, data) => {
+						const $ = cheerio.load("<body>" + data.match(/content:.+,/)[0] + "</body>");
+						let table = $("body").find("table");
+						let tbody = table.find("tbody");
+						try {
+              console.log(i);
+              
+							tbody.find("tr").each((i, trItem) => {
+								let fundItem = {};
+								let tdArray = $(trItem)
+									.find("td")
+									.map((j, tdItem) => $(tdItem));
+								fundItem.date = tdArray[0].text(); // 净值日期
+								fundItem.unitNet = tdArray[1].text(); // 单位净值
+								fundItem.accumulatedNet = tdArray[2].text(); // 累计净值
+								fundItem.changePercent = tdArray[3].text(); // 日增长率
+								fundData.push(fundItem);
 							});
-						fundItem.date = tdArray[0].text(); // 净值日期
-						fundItem.unitNet = tdArray[1].text(); // 单位净值
-						fundItem.accumulatedNet = tdArray[2].text(); // 累计净值
-						fundItem.changePercent = tdArray[3].text(); // 日增长率
-						fundData.push(fundItem);
+						} catch (e) {
+							console.log(e);
+						}
 					});
-					callback(err, fundData);
-				} catch (e) {
-					console.log(e);
-					callback(e, []);
 				}
+				console.log(fundData.length);
+
+				callback(null, fundData);
+			} else {
+				callback(err, fundData);
 			}
 		});
 	}

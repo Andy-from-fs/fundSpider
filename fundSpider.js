@@ -64,7 +64,8 @@ class FundSpider {
       }
     });
   }
-  fetchPro(url, coding) {
+
+  $fetchPro(url, coding) {
     return new Promise(($res, $rej) => {
       request({ url, encoding: null }, (error, response, body) => {
         let _body = coding === 'utf-8' ? body : iconv.decode(body, coding);
@@ -82,7 +83,8 @@ class FundSpider {
   fetchFundCodes(callback) {
     let url = 'http://fund.eastmoney.com/allfund.html';
     // 原网页编码是gb2312，需对应解码
-    this.fetch(url, 'gb2312', (err, $) => {
+    this.$fetch(url, 'gb2312', (err, res) => {
+      const $ = cheerio.load('<body>' + res + '</body>');
       let fundCodesArray = [];
       if (!err) {
         $('body')

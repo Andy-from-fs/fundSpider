@@ -66,14 +66,16 @@ class FundSpider {
   }
 
   $fetchPro(url, coding) {
-    return new Promise(($res, $rej) => {
+    return new Promise(($resolve, $reject) => {
       request({ url, encoding: null }, (error, response, body) => {
         let _body = coding === 'utf-8' ? body : iconv.decode(body, coding);
         if (!error && response.statusCode === 200) {
           // 将请求到的网页装载到jquery选择器中
-          callback(null, cheerio.load('<body>' + _body + '</body>'));
+          // callback(null, cheerio.load('<body>' + _body + '</body>'));
+          $resolve(_body);
         } else {
-          callback(error, cheerio.load('<body></body>'));
+          // callback(error, cheerio.load('<body></body>'));
+          $reject(error);
         }
       });
     });
@@ -82,11 +84,10 @@ class FundSpider {
   // 批量获取所有的基金代码
   fetchFundCodes(callback) {
     let url = 'http://fund.eastmoney.com/allfund.html';
-    // 原网页编码是gb2312，需对应解码
-    this.$fetch(url, 'gb2312', (err, res) => {
-      const $ = cheerio.load('<body>' + res + '</body>');
-      let fundCodesArray = [];
-      if (!err) {
+    this.$fetchPro(url, 'gb2312')
+      .then(res => {
+        const $ = cheerio.load('<body>' + res + '</body>');
+        let fundCodesArray = [];
         $('body')
           .find('.num_right')
           .find('li')
@@ -100,9 +101,11 @@ class FundSpider {
               fundCodesArray.push(code);
             }
           });
-      }
-      callback(err, fundCodesArray);
-    });
+        callback(null, fundCodesArray);
+      })
+      .catch(err => {
+        callback(err, null);
+      });
   }
 
   // 根据基金代码获取对应基本信息

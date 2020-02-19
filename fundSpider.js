@@ -112,6 +112,8 @@ class FundSpider {
   fetchFundInfo(code, callback) {
     let fundUrl = 'http://fund.eastmoney.com/f10/' + code + '.html';
     let fundData = { fundCode: code };
+    console.log(fundUrl);
+
     this.$fetch(fundUrl, 'utf-8', (err, body) => {
       if (!err) {
         const $ = cheerio.load('<body>' + body + '</body>');
@@ -133,6 +135,16 @@ class FundSpider {
         fundData.trusteeshipRate = $($(dataRow[6]).find('td')[1]).text(); //托管费率
         fundData.saleServiceRate = $($(dataRow[7]).find('td')[0]).text(); //销售服务费率
         fundData.subscriptionRate = $($(dataRow[7]).find('td')[1]).text(); //最高认购费率
+        const buyRate = $($(dataRow[8]).find('td')[0])
+          .text()
+          .match(/(\d+%)|(\d+\.\d+%)/g); //最高申购购费率
+        console.log(buyRate);
+
+        fundData.buyRate = buyRate[buyRate.length - 1];
+        const saleRate = $($(dataRow[8]).find('td')[1])
+          .text()
+          .match(/(\d+%)|(\d+\.\d+%)/g); //最高申购购费率
+        fundData.saleRate = saleRate[saleRate.length - 1];
       }
       callback(err, fundData);
     });

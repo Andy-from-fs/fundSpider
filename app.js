@@ -37,7 +37,7 @@ app.get('/fetchFundData/:code/:sdate/:edata', (req, res) => {
     req.params.sdata,
     req.params.edata,
     (err, data) => {
-      // console.log(data);
+      if (err) console.log(err);
       res.status(200).json(data);
     }
   );

@@ -23,20 +23,19 @@ app.get('/fetchFundInfo/:code', (req, res) => {
   });
 });
 // 基金净值变动情况数据接口
-app.get('/fetchFundData/:code/:per', (req, res) => {
+app.get('/fetchFundData/:code/:sdate/:edata', (req, res) => {
+  console.log(req);
   if (!req.params.code) {
     res.err('请输入基金代码。');
     return;
   }
-  const per = req.params.per || 9000;
 
   let fundSpider = new FundSpider();
   res.header('Access-Control-Allow-Origin', '*');
   fundSpider.fetchFundData(
     req.params.code,
-    undefined,
-    undefined,
-    per,
+    req.params.sdata,
+    req.params.edata,
     (err, data) => {
       // console.log(data);
       res.status(200).json(data);

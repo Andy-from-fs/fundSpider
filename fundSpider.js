@@ -257,8 +257,8 @@ class FundSpider {
 
     const pages = parseInt(pageRes.match(/pages:(\d+),/g)[0].match(/\d+/g)[0]);
     for (var i = 1; i <= pages; i++) {
-      console.log(`${url}&page=${i}`);
-      
+      // console.log(`${url}&page=${i}`);
+
       const pageItemRes = await this.$fetchPro(
         `${url}&page=${i}`,
         'gb2312'
@@ -291,7 +291,7 @@ class FundSpider {
   }
   // 根据基金代码获取其选定日期范围内的基金变动数据
   // 基金代码，开始日期，截止日期，数据个数，回调函数
-  fetchFundData(code, sdate, edate, per = 9999, callback) {
+  fetchFundData(code, sdate, edate, callback) {
     let fundUrl = 'http://fund.eastmoney.com/f10/F10DataApi.aspx?type=lsjz';
     let date = new Date();
     let dateNow = new Date();
@@ -301,7 +301,7 @@ class FundSpider {
       : this.getDateStr(new Date(date.setFullYear(date.getFullYear() - 3)));
     edate = edate ? edate : this.getDateStr(dateNow);
     fundUrl +=
-      '&code=' + code + '&sdate=' + sdate + '&edate=' + edate + '&per=' + per;
+      '&code=' + code + '&sdate=' + sdate + '&edate=' + edate + '&per=' + 20;
     console.log(fundUrl);
     this.fetchFundUrl(fundUrl, callback);
   }

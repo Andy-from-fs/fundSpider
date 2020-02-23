@@ -1,5 +1,9 @@
 const mongoose = require("mongoose");
-const db = mongoose.connect("mongodb://localhost:27017/", { useNewUrlParser: true }, function(err) {
+const dbName = "fund";
+const dbUrl = "localhost:27017";
+const db = mongoose.connect(`mongodb://${dbUrl}/${dbName}`, { useNewUrlParser: true }, function(
+  err
+) {
   if (err) {
     console.log(err);
   } else {
@@ -11,7 +15,7 @@ const Schema = mongoose.Schema;
 // 用户
 let fundInfoSchema = new Schema({
   _id: String,
-  code: String,
+  code: String, //基金代码
   name: String, //基金全称
   name_shore: String, //基金简称
   type: String, //基金类型

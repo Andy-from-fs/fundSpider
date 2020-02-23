@@ -10,6 +10,8 @@ router
   .get("/fetchFundData", controller.fetchFundData)
   .post("/fetchFundData", controller.fetchFundData)
   .get("/fundSave", controller.fundSave)
-  .post("/fundSave", controller.fundSave);
+  .post("/fundSave", controller.fundSave)
+  .get("test1", controller.test)
+  .post("test1", controller.test);
 
 module.exports = router;

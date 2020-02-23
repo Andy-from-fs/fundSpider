@@ -1,3 +1,4 @@
+var _array = require("lodash/array");
 const path = require("path");
 const events = require("events"); //事件监听
 const request = require("request"); //发送请求
@@ -43,25 +44,25 @@ const dbUrl = "mongodb://localhost:27017/"; //数据库连接地址
 // 基金爬虫
 class FundSpider {
   // 数据库名，表名，并发片段数量
-  constructor(dbName = "fund", collectionName = "fundData", fragmentSize = 1000) {
+  constructor(dbName = "fund", collectionName = "fundData", fragmentSize = 500) {
     this.dbUrl = dbUrl;
     this.dbName = dbName;
     this.collectionName = collectionName;
     this.fragmentSize = fragmentSize;
   }
 
-  // 获取url对应网址内容，除utf-8外，需指定网页编码
-  $fetch(url, coding, callback) {
-    request({ url, encoding: null }, (error, response, body) => {
-      let _body = coding === "utf-8" ? body : iconv.decode(body, coding);
-      if (!error && response.statusCode === 200) {
-        // 将请求到的网页装载到jquery选择器中
-        callback(null, _body);
-      } else {
-        callback(error);
-      }
-    });
-  }
+  // // 获取url对应网址内容，除utf-8外，需指定网页编码
+  // $fetch(url, coding, callback) {
+  //   request({ url, encoding: null }, (error, response, body) => {
+  //     let _body = coding === "utf-8" ? body : iconv.decode(body, coding);
+  //     if (!error && response.statusCode === 200) {
+  //       // 将请求到的网页装载到jquery选择器中
+  //       callback(null, _body);
+  //     } else {
+  //       callback(error);
+  //     }
+  //   });
+  // }
 
   $fetchPro(url, coding) {
     return new Promise(($resolve, $reject) => {
@@ -83,6 +84,7 @@ class FundSpider {
   async fetchFundCodes() {
     const url = "http://fund.eastmoney.com/allfund.html";
     const res = await this.$fetchPro(url, "gb2312").catch(err => {
+      console.log(err);
       throw err;
     });
     // console.log(res);
@@ -108,9 +110,9 @@ class FundSpider {
   }
 
   // 根据基金代码获取对应基本信息
-  async fetchFundInfo(code, callback) {
+  async fetchFundInfo(code) {
     let fundUrl = "http://fund.eastmoney.com/f10/" + code + ".html";
-    let fundData = { fundCode: code };
+    let fundData = { code };
     console.log(fundUrl);
 
     const body = await this.$fetchPro(fundUrl, "utf-8").catch(err => {
@@ -121,7 +123,6 @@ class FundSpider {
     let dataRow = $("body")
       .find(".detail .box")
       .find("tr");
-    fundData.code = code;
     fundData.name = $($(dataRow[0]).find("td")[0]).text(); //基金全称
     fundData.name_short = $($(dataRow[0]).find("td")[1]).text(); //基金简称
     fundData.type = $($(dataRow[1]).find("td")[1]).text(); //基金类型
@@ -140,16 +141,17 @@ class FundSpider {
     const buyRate = $($(dataRow[8]).find("td")[0])
       .text()
       .match(/(\d+%)|(\d+\.\d+%)/g); //最高申购购费率
-    console.log(buyRate);
-    fundData.buy_rate = buyRate[buyRate.length - 1];
+    // console.log(buyRate);
+    fundData.buy_rate =
+      buyRate && buyRate instanceof Array ? buyRate[buyRate.length - 1] : "未收录";
     const saleRate = $($(dataRow[8]).find("td")[1])
       .text()
       .match(/(\d+%)|(\d+\.\d+%)/g); //最高申购购费率
-    console.log(saleRate);
-    fundData.sale_rate = saleRate[saleRate.length - 1];
+    // console.log(saleRate);
+    fundData.sale_rate =
+      saleRate && saleRate instanceof Array ? saleRate[saleRate.length - 1] : "未收录";
 
     return fundData;
-    // callback(err, fundData);
   }
 
   // // 并发获取的基金信息片段保存到数据库指定的表
@@ -172,29 +174,33 @@ class FundSpider {
 
   // 并发获取给定基金代码数组中对应的基金基本信息，并保存到数据库
   async fundToSave(codesArray = []) {
-    let codesLength = codesArray.length;
+    const codesArrayChunked = _array.chunk(codesArray, this.fragmentSize);
     let resArr = [];
-    for (let i = 0; i < codesArray.length; i++) {
-      let res;
-      let fundData = await this.fetchFundInfo(codesArray[i]).catch(err => {
-        res = { statusCode: 300, msg: err, code: codesArray[i] };
-        console.log(err);
-      });
-      if (fundData) {
-        // 指定每条数据的唯一标志是基金代码，便于查询与排序
-        fundData["_id"] = fundData.fundCode;
-        console.log(fundData);
+    let res;
+    for (const codes of codesArrayChunked.values()) {
+      const $promises = codes.map(code => this.fetchFundInfo(code));
+      console.log($promises);
 
-        const fundInfoDB = new $db.fundInfo({ ...fundData });
-        const successMsg = await fundInfoDB.save().catch(err => {
-          res = { statusCode: 300, msg: err, code: codesArray[i] };
-          console.log(err);
-        });
-        res = { statusCode: 200, msg: successMsg, code: codesArray[i] };
-      } else {
-        res = { statusCode: 300, msg: "fundData null", code: codesArray[i] };
+      const $promisesResults = await Promise.allSettled($promises);
+      console.log($promisesResults);
+
+      for (const [index, res] of $promisesResults.entries()) {
+        if (res.status === "rejected") {
+          resArr.push({ statusCode: 300, msg: res.reason, code: codes[index] });
+        } else if (!res.value instanceof Object) {
+          resArr.push({ statusCode: 300, msg: "fundData null", code: codes[index] });
+        } else {
+          const fundData = res.value;
+          const fundInfoDB = new $db.fundInfo({ _id: fundData.code, ...fundData });
+          const successMsg = await fundInfoDB.save().catch(err => {
+            resArr.push({ statusCode: 300, msg: err, code: fundData.code });
+            console.log(err);
+          });
+          console.log(`save ${codes[index]}`);
+          resArr.push({ statusCode: 200, msg: successMsg, code: fundData.code });
+        }
+        // resArr.push(res);
       }
-      resArr.push(res);
     }
     if (resArr.every(e => e.statusCode === 200)) return { msg: "全部保存成功", codes: resArr };
     else throw { msg: "部分保存成功", errorCode: resArr.filter(e => e.statusCode === 300) };

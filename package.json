@@ -11,6 +11,7 @@
     "koa-onerror": "^4.1.0",
     "koa-router": "^8.0.8",
     "mongodb": "^3.5.3",
+    "mongoose": "^5.9.1",
     "request": "^2.88.2"
   }
 }

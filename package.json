@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "axios": "^0.19.2",
     "cheerio": "^1.0.0-rc.3",
     "core-js": "^3.6.4",
     "express": "^4.17.1",
@@ -12,7 +13,6 @@
     "koa-router": "^8.0.8",
     "lodash": "^4.17.15",
     "mongodb": "^3.5.3",
-    "mongoose": "^5.9.1",
-    "request": "^2.88.2"
+    "mongoose": "^5.9.1"
   }
 }

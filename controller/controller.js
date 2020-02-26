@@ -44,13 +44,13 @@ const fundSave = async (ctx, next) => {
   };
 };
 
-const fundDetail = async (ctx, next) => {
+const fetchFundDetail = async (ctx, next) => {
   if (!ctx.query.code) {
     ctx.throw(300, "请输入code");
     return;
   }
   let fundSpider = new FundSpider(2);
-  const data = await fundSpider.fetchFundData(ctx.query.code).catch(err => {
+  const data = await fundSpider.fetchFundDetail(ctx.query.code).catch(err => {
     ctx.throw(300, err);
   });
   ctx.set("Access-Control-Allow-Origin", "*");
@@ -79,6 +79,6 @@ module.exports = {
   fetchFundCodes,
   fetchFundInfo,
   fundSave,
-  fundDetail,
+  fetchFundDetail,
   test,
 };

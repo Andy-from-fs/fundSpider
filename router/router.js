@@ -5,10 +5,12 @@ router
   .get("/", async ctx => {
     ctx.body = "hello world";
   })
-  .get("/fetchFundCodes", controller.fetchFundCodes)
-  .post("/fetchFundCodes", controller.fetchFundCodes)
-  .get("/fetchFundData", controller.fetchFundData)
-  .post("/fetchFundData", controller.fetchFundData)
+  .get("/fundCodes", controller.fetchFundCodes)
+  .post("/fundCodes", controller.fetchFundCodes)
+  .get("/fundInfo", controller.fetchFundInfo)
+  .post("/fundInfo", controller.fetchFundInfo)
+  .get("/fundDetail", controller.fetchFundDetail)
+  .post("/fundDetail", controller.fetchFundDetail)
   .get("/fundSave", controller.fundSave)
   .post("/fundSave", controller.fundSave)
   .get("test1", controller.test)

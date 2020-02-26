@@ -14,13 +14,28 @@ class FundSpider {
   // 批量获取所有的基金代码
   async fetchFundCodes() {
     const url = "http://fund.eastmoney.com/allfund.html";
-    const res = await axios.get(url).catch(err => {
-      console.log(err);
-      throw err;
-    });
-    // console.log(res);
-    const $ = cheerio.load("<body>" + res.data + "</body>");
+
+    async function getHtml() {
+      const res = await axios({
+        url,
+        responseType: "stream",
+      });
+      return new Promise(resolve => {
+        const chunks = [];
+        res.data.on("data", chunk => {
+          chunks.push(chunk);
+        });
+        res.data.on("end", () => {
+          const buffer = Buffer.concat(chunks);
+          const str = iconv.decode(buffer, "gb2312");
+          resolve(str);
+        });
+      });
+    }
+    const html = await getHtml();
+    const $ = cheerio.load("<body>" + html + "</body>");
     let fundCodesArray = [];
+
     $("body")
       .find(".num_right")
       .find("li")
@@ -34,9 +49,7 @@ class FundSpider {
           fundCodesArray.push(code);
         }
       });
-    // callback(null, fundCodesArray);
-    // })
-    console.log(fundCodesArray);
+
     return fundCodesArray;
   }
 

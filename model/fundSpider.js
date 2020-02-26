@@ -57,10 +57,10 @@ class FundSpider {
   async fetchFundInfo(code) {
     let fundUrl = "http://fund.eastmoney.com/f10/" + code + ".html";
     let fundData = { code };
-    console.log(fundUrl);
+    // console.log(fundUrl);
 
     const res = await axios.get(fundUrl).catch(err => {
-      console.log(err);
+      // console.log(err);
       throw err;
     });
     const $ = cheerio.load("<body>" + res.data + "</body>");
@@ -94,10 +94,12 @@ class FundSpider {
     // console.log(saleRate);
     fundData.sale_rate =
       saleRate && saleRate instanceof Array ? saleRate[saleRate.length - 1] : "未收录";
-    console.log(fundData);
+    // console.log(fundData);
 
     return fundData;
   }
+
+  checkHaveSaved() {}
 
   // 并发获取给定基金代码数组中对应的基金基本信息，并保存到数据库
   async fundToSave(codesArray = []) {
@@ -105,6 +107,7 @@ class FundSpider {
     let resArr = [];
     let res;
     for (const codes of codesArrayChunked.values()) {
+      const codeInfosOneTeam = [];
       const $promises = codes.map(code => this.fetchFundInfo(code));
       console.log($promises);
 
@@ -121,16 +124,17 @@ class FundSpider {
             code: codes[index],
           });
         } else {
-          const fundData = res.value;
-          const fundInfoDB = new $db.fundInfo({
-            _id: fundData.code,
-            ...fundData,
-          });
+          const fundData = {
+            _id: res.value.code,
+            ...res.value,
+          };
+          const fundInfoDB = new $db.fundInfo(fundData);
           const successMsg = await fundInfoDB.save().catch(err => {
             resArr.push({ statusCode: 300, msg: err, code: fundData.code });
             console.log(err);
           });
-          console.log(`save ${codes[index]}`);
+          // console.log(`save ${codes[index]}`);
+          codeInfosOneTeam.push(fundData);
           resArr.push({
             statusCode: 200,
             msg: successMsg,
@@ -139,6 +143,7 @@ class FundSpider {
         }
         // resArr.push(res);
       }
+      console.log(codeInfosOneTeam);
     }
     if (resArr.every(e => e.statusCode === 200)) {
       console.log("全部保存成功");
@@ -188,7 +193,7 @@ class FundSpider {
   }
 
   // 根据基金代码获取其选定日期范围内的基金变动数据
-  // 基金代码，开始日期，截止日期，数据个数，回调函数
+  //? 基金代码，开始日期，截止日期，数据个数，回调函数
   async fetchFundDetail(code, sdate, edate, callback) {
     let fundUrl = "http://fund.eastmoney.com/f10/F10DataApi.aspx?type=lsjz";
     let date = new Date();
@@ -197,10 +202,10 @@ class FundSpider {
     sdate = sdate ? sdate : this.getDateStr(new Date(date.setFullYear(date.getFullYear() - 3)));
     edate = edate ? edate : this.getDateStr(dateNow);
     fundUrl += "&code=" + code + "&sdate=" + sdate + "&edate=" + edate + "&per=" + 20;
-    console.log(fundUrl);
+    // console.log(fundUrl);
     // const await this.fetchFundUrl(fundUrl, callback);
 
-    //! 爬取并解析基金的单位净值，增长率等信息
+    //? 爬取并解析基金的单位净值，增长率等信息
     const pageRes = await axios.get(fundUrl).catch(err => {
       throw err;
     });

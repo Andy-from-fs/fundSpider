@@ -30,8 +30,8 @@ const fetchFundInfo = async (ctx, next) => {
   };
 };
 
-const fundSave = async (ctx, next) => {
-  let fundSpider = new FundSpider(2);
+const fundFetchSave = async (ctx, next) => {
+  let fundSpider = new FundSpider(50);
   ctx.set("Access-Control-Allow-Origin", "*");
   const data = await fundSpider.fundSave().catch(err => {
     console.log(err);
@@ -78,7 +78,7 @@ const test = async (ctx, next) => {
 module.exports = {
   fetchFundCodes,
   fetchFundInfo,
-  fundSave,
+  fundFetchSave,
   fetchFundDetail,
   test,
 };

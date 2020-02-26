@@ -2,7 +2,7 @@ const FundSpider = require("../model/fundSpider");
 
 module.exports = async (ctx, next) => {
   let fundSpider = new FundSpider();
-  fundSpider.fragmentSize = 1;
+  fundSpider.fragmentSize = 2;
   ctx.set("Access-Control-Allow-Origin", "*");
   const data = await fundSpider.fundSave().catch(err => {
     console.log(err);

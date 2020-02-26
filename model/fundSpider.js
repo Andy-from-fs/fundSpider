@@ -1,13 +1,8 @@
-var _array = require("lodash/array");
-const path = require("path");
-const events = require("events"); //事件监听
+const _array = require("lodash/array");
 const request = require("request"); //发送请求
 const iconv = require("iconv-lite"); //网页解码
 const cheerio = require("cheerio"); //网页解析
 const $db = require("../db/db");
-const MongoClient = require("mongodb").MongoClient; //数据库
-const Event = new events.EventEmitter(); //事件监听实例
-const dbUrl = "mongodb://localhost:27017/"; //数据库连接地址
 
 // class ConcurrentCtrl {
 //   // 调用者上下文环境，并发分段数量（建议不要超过1000），调用函数，总参数数组，数据库表名
@@ -44,10 +39,7 @@ const dbUrl = "mongodb://localhost:27017/"; //数据库连接地址
 // 基金爬虫
 class FundSpider {
   // 数据库名，表名，并发片段数量
-  constructor(dbName = "fund", collectionName = "fundData", fragmentSize = 500) {
-    this.dbUrl = dbUrl;
-    this.dbName = dbName;
-    this.collectionName = collectionName;
+  constructor(fragmentSize = 500) {
     this.fragmentSize = fragmentSize;
   }
 
@@ -143,34 +135,20 @@ class FundSpider {
       .match(/(\d+%)|(\d+\.\d+%)/g); //最高申购购费率
     // console.log(buyRate);
     fundData.buy_rate =
-      buyRate && buyRate instanceof Array ? buyRate[buyRate.length - 1] : "未收录";
+      buyRate && buyRate instanceof Array
+        ? buyRate[buyRate.length - 1]
+        : "未收录";
     const saleRate = $($(dataRow[8]).find("td")[1])
       .text()
       .match(/(\d+%)|(\d+\.\d+%)/g); //最高申购购费率
     // console.log(saleRate);
     fundData.sale_rate =
-      saleRate && saleRate instanceof Array ? saleRate[saleRate.length - 1] : "未收录";
+      saleRate && saleRate instanceof Array
+        ? saleRate[saleRate.length - 1]
+        : "未收录";
 
     return fundData;
   }
-
-  // // 并发获取的基金信息片段保存到数据库指定的表
-  // async fundFragmentSave(collection, codesArray) {
-  //   for (let i = 0; i < codesArray.length; i++) {
-  //     const fundData = await this.$fetchFundInfo(codesArray[i]).catch(err => {
-  //       throw error;
-  //       Event.emit("error_fundItem", codesArray[i]);
-  //       Event.emit("fundItem", codesArray[i]);
-  //     });
-  //     // 指定每条数据的唯一标志是基金代码，便于查询与排序
-  //     fundData["_id"] = fundData.fundCode;
-  //     collection.save(fundData, (err, res) => {
-  //       Event.emit("correct_fundItem", codesArray[i]);
-  //       Event.emit("fundItem", codesArray[i]);
-  //       if (err) throw err;
-  //     });
-  //   }
-  // }
 
   // 并发获取给定基金代码数组中对应的基金基本信息，并保存到数据库
   async fundToSave(codesArray = []) {
@@ -188,22 +166,44 @@ class FundSpider {
         if (res.status === "rejected") {
           resArr.push({ statusCode: 300, msg: res.reason, code: codes[index] });
         } else if (!res.value instanceof Object) {
-          resArr.push({ statusCode: 300, msg: "fundData null", code: codes[index] });
+          resArr.push({
+            statusCode: 300,
+            msg: "fundData null",
+            code: codes[index]
+          });
         } else {
           const fundData = res.value;
-          const fundInfoDB = new $db.fundInfo({ _id: fundData.code, ...fundData });
+          const fundInfoDB = new $db.fundInfo({
+            _id: fundData.code,
+            ...fundData
+          });
           const successMsg = await fundInfoDB.save().catch(err => {
             resArr.push({ statusCode: 300, msg: err, code: fundData.code });
             console.log(err);
           });
           console.log(`save ${codes[index]}`);
-          resArr.push({ statusCode: 200, msg: successMsg, code: fundData.code });
+          resArr.push({
+            statusCode: 200,
+            msg: successMsg,
+            code: fundData.code
+          });
         }
         // resArr.push(res);
       }
     }
-    if (resArr.every(e => e.statusCode === 200)) return { msg: "全部保存成功", codes: resArr };
-    else throw { msg: "部分保存成功", errorCode: resArr.filter(e => e.statusCode === 300) };
+    if (resArr.every(e => e.statusCode === 200)) {
+      console.log("全部保存成功");
+      return { msg: "全部保存成功", codes: resArr };
+    } else {
+      console.log({
+        msg: "部分保存成功",
+        errorCode: resArr.filter(e => e.statusCode === 300)
+      });
+      throw {
+        msg: "部分保存成功",
+        errorCode: resArr.filter(e => e.statusCode === 300)
+      };
+    }
   }
 
   // 未传参则获取所有基金基本信息，给定基金代码数组则获取对应信息，均更新到数据库
@@ -219,7 +219,9 @@ class FundSpider {
     } else {
       // 过滤可能的非数组入参的情况
       _codesArray =
-        Object.prototype.toString.call(_codesArray) === "[object Array]" ? _codesArray : [];
+        Object.prototype.toString.call(_codesArray) === "[object Array]"
+          ? _codesArray
+          : [];
       if (_codesArray.length > 0) {
         // 部分基金信息爬取保存
         return await this.fundToSave(_codesArray);
@@ -233,7 +235,8 @@ class FundSpider {
   // 日期转字符串
   getDateStr(dd) {
     let y = dd.getFullYear();
-    let m = dd.getMonth() + 1 < 10 ? "0" + (dd.getMonth() + 1) : dd.getMonth() + 1;
+    let m =
+      dd.getMonth() + 1 < 10 ? "0" + (dd.getMonth() + 1) : dd.getMonth() + 1;
     let d = dd.getDate() < 10 ? "0" + dd.getDate() : dd.getDate();
     return y + "-" + m + "-" + d;
   }
@@ -249,7 +252,10 @@ class FundSpider {
     for (var i = 1; i <= pages; i++) {
       // console.log(`${url}&page=${i}`);
 
-      const pageItemRes = await this.$fetchPro(`${url}&page=${i}`, "gb2312").catch(err => {
+      const pageItemRes = await this.$fetchPro(
+        `${url}&page=${i}`,
+        "gb2312"
+      ).catch(err => {
         console.log(err);
         callback(err);
       });
@@ -283,9 +289,12 @@ class FundSpider {
     let date = new Date();
     let dateNow = new Date();
     // 默认开始时间为当前日期的3年前
-    sdate = sdate ? sdate : this.getDateStr(new Date(date.setFullYear(date.getFullYear() - 3)));
+    sdate = sdate
+      ? sdate
+      : this.getDateStr(new Date(date.setFullYear(date.getFullYear() - 3)));
     edate = edate ? edate : this.getDateStr(dateNow);
-    fundUrl += "&code=" + code + "&sdate=" + sdate + "&edate=" + edate + "&per=" + 20;
+    fundUrl +=
+      "&code=" + code + "&sdate=" + sdate + "&edate=" + edate + "&per=" + 20;
     console.log(fundUrl);
     this.fetchFundUrl(fundUrl, callback);
   }

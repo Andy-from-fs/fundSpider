@@ -3,11 +3,12 @@ const axios = require("axios").default;
 const iconv = require("iconv-lite"); //网页解码
 const cheerio = require("cheerio"); //网页解析
 const $db = require("../db/db");
+const util=require("../util");
 
 // 基金爬虫
 class FundSpider {
   // 数据库名，表名，并发片段数量
-  constructor(fragmentSize = 500) {
+  constructor(fragmentSize = 50) {
     this.fragmentSize = fragmentSize;
   }
 
@@ -184,23 +185,15 @@ class FundSpider {
     }
   }
 
-  // 日期转字符串
-  getDateStr(dd) {
-    let y = dd.getFullYear();
-    let m = dd.getMonth() + 1 < 10 ? "0" + (dd.getMonth() + 1) : dd.getMonth() + 1;
-    let d = dd.getDate() < 10 ? "0" + dd.getDate() : dd.getDate();
-    return y + "-" + m + "-" + d;
-  }
-
   // 根据基金代码获取其选定日期范围内的基金变动数据
   //? 基金代码，开始日期，截止日期，数据个数，回调函数
-  async fetchFundDetail(code, sdate, edate, callback) {
+  async fetchFundDetail(code, sdate, edate) {
     let fundUrl = "http://fund.eastmoney.com/f10/F10DataApi.aspx?type=lsjz";
     let date = new Date();
     let dateNow = new Date();
     // 默认开始时间为当前日期的3年前
-    sdate = sdate ? sdate : this.getDateStr(new Date(date.setFullYear(date.getFullYear() - 3)));
-    edate = edate ? edate : this.getDateStr(dateNow);
+    sdate = sdate ? sdate : util.getDateStr(new Date(date.setFullYear(date.getFullYear() - 3)));
+    edate = edate ? edate : util.getDateStr(dateNow);
     fundUrl += "&code=" + code + "&sdate=" + sdate + "&edate=" + edate + "&per=" + 20;
     // console.log(fundUrl);
     // const await this.fetchFundUrl(fundUrl, callback);

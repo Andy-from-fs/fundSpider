@@ -11,6 +11,8 @@ router
   .post("/fundInfo", controller.fetchFundInfo)
   .get("/fundDetail", controller.fetchFundDetail)
   .post("/fundDetail", controller.fetchFundDetail)
+  .get("/fundDetailLast", controller.fetchFundDetailLast)
+  .post("/fundDetailLast", controller.fetchFundDetailLast)
   .get("/fundFetchSave", controller.fundFetchSave)
   .post("/fundFetchSave", controller.fundFetchSave)
   .get("test1", controller.test)

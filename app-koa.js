@@ -1,4 +1,4 @@
-require('core-js');
+require("core-js");
 const Koa = require("koa");
 const app = new Koa();
 const json = require("koa-json");
@@ -24,6 +24,7 @@ app.use(async (ctx, next) => {
   const ms = new Date() - start;
   // console.log(`${ctx.method} ${ctx.url} - ${ms}ms`);
   ctx.set("x-response-time", ms);
+  ctx.set("Access-Control-Allow-Origin", "*");
 });
 app.use($router.routes(), $router.allowedMethods());
 

@@ -16,7 +16,6 @@ class FundSpider {
   // 批量获取所有的基金代码
   async fetchFundCodes() {
     const url = "http://fund.eastmoney.com/allfund.html";
-
     const [axiosErr, res] = await to(
       axios({
         url,
@@ -65,10 +64,8 @@ class FundSpider {
     let fundData = { code };
     // console.log(fundUrl);
 
-    const res = await axios.get(fundUrl).catch(err => {
-      // console.log(err);
-      throw err;
-    });
+    const [axiosErr, res] = await to(axios.get(fundUrl));
+    if (axiosErr) throw axiosErr;
     const $ = cheerio.load("<body>" + res.data + "</body>");
     let dataRow = $("body")
       .find(".detail .box")
@@ -135,10 +132,11 @@ class FundSpider {
             ...res.value,
           };
           const fundInfoDB = new $db.fundInfo(fundData);
-          const successMsg = await fundInfoDB.save().catch(err => {
-            resArr.push({ statusCode: 300, msg: err, code: fundData.code });
-            console.log(err);
-          });
+          const [saveErr, successMsg] = await to(fundInfoDB.save());
+          if (saveErr) {
+            resArr.push({ statusCode: 300, msg: saveErr, code: fundData.code });
+            console.log(saveErr);
+          }
           // console.log(`save ${codes[index]}`);
           codeInfosOneTeam.push(fundData);
           resArr.push({
@@ -170,10 +168,11 @@ class FundSpider {
   async fundSave(_codesArray) {
     if (!_codesArray) {
       // 所有基金信息爬取保存
-      const data = await this.fetchFundCodes().catch(err => {
-        console.log(err);
-        throw err;
-      });
+      const [fetchFundCodesErr, data] = await to(this.fetchFundCodes());
+      if (fetchFundCodesErr) {
+        console.log(fetchFundCodesErr);
+        throw fetchFundCodesErr;
+      }
       await this.fundToSave(data);
       return;
     } else {
@@ -212,28 +211,23 @@ class FundSpider {
 
     const pages = parseInt(pageRes.data.match(/pages:(\d+),/g)[0].match(/\d+/g)[0]);
     for (var i = 1; i <= pages; i++) {
-      const pageItemRes = await axios.get(`${fundUrl}&page=${i}`).catch(err => {
-        throw err;
-      });
+      const [pageErr, pageItemRes] = await axios.get(`${fundUrl}&page=${i}`);
+      if (pageErr) throw pageErr;
 
       const $ = cheerio.load("<body>" + pageItemRes.data + "</body>");
       const table = $("body").find("table");
       const tbody = table.find("tbody");
-      try {
-        tbody.find("tr").each((i, trItem) => {
-          let fundItem = {};
-          let tdArray = $(trItem)
-            .find("td")
-            .map((j, tdItem) => $(tdItem));
-          fundItem.date = tdArray[0].text(); // 净值日期
-          fundItem.unitNet = tdArray[1].text(); // 单位净值
-          fundItem.accumulatedNet = tdArray[2].text(); // 累计净值
-          fundItem.changePercent = tdArray[3].text(); // 日增长率
-          fundData.push(fundItem);
-        });
-      } catch (e) {
-        throw err;
-      }
+      tbody.find("tr").each((i, trItem) => {
+        let fundItem = {};
+        let tdArray = $(trItem)
+          .find("td")
+          .map((j, tdItem) => $(tdItem));
+        fundItem.date = tdArray[0].text(); // 净值日期
+        fundItem.unitNet = tdArray[1].text(); // 单位净值
+        fundItem.accumulatedNet = tdArray[2].text(); // 累计净值
+        fundItem.changePercent = tdArray[3].text(); // 日增长率
+        fundData.push(fundItem);
+      });
     }
 
     return fundData;

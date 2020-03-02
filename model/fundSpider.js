@@ -3,7 +3,8 @@ const axios = require("axios").default;
 const iconv = require("iconv-lite"); //网页解码
 const cheerio = require("cheerio"); //网页解析
 const $db = require("../db/db");
-const util=require("../util");
+const util = require("../util");
+const to = require("await-to-js").default;
 
 // 基金爬虫
 class FundSpider {
@@ -17,10 +18,14 @@ class FundSpider {
     const url = "http://fund.eastmoney.com/allfund.html";
 
     async function getHtml() {
-      const res = await axios({
-        url,
-        responseType: "stream",
-      });
+      const [axiosErr, res] = await to(
+        axios({
+          url,
+          responseType: "stream",
+        })
+      );
+      if (axiosErr) throw axiosErr;
+      if (!res.data) throw "axios res data is null";
       return new Promise(resolve => {
         const chunks = [];
         res.data.on("data", chunk => {
@@ -33,10 +38,11 @@ class FundSpider {
         });
       });
     }
-    const html = await getHtml();
+    const [getHtmlErr, html] = await to(getHtml());
+    if (getHtmlErr) throw getHtmlErr;
+    if (!html) throw "convert fail, HTML string is null";
     const $ = cheerio.load("<body>" + html + "</body>");
     let fundCodesArray = [];
-
     $("body")
       .find(".num_right")
       .find("li")

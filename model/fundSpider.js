@@ -17,16 +17,16 @@ class FundSpider {
   async fetchFundCodes() {
     const url = "http://fund.eastmoney.com/allfund.html";
 
-    async function getHtml() {
-      const [axiosErr, res] = await to(
-        axios({
-          url,
-          responseType: "stream",
-        })
-      );
-      if (axiosErr) throw axiosErr;
-      if (!res.data) throw "axios res data is null";
-      return new Promise(resolve => {
+    const [axiosErr, res] = await to(
+      axios({
+        url,
+        responseType: "stream",
+      })
+    );
+    if (axiosErr) throw axiosErr;
+    if (!res.data) throw "axios res data is null";
+    const [convertHtmlErr, html] = await to(
+      new Promise(resolve => {
         const chunks = [];
         res.data.on("data", chunk => {
           chunks.push(chunk);
@@ -36,10 +36,9 @@ class FundSpider {
           const str = iconv.decode(buffer, "gb2312");
           resolve(str);
         });
-      });
-    }
-    const [getHtmlErr, html] = await to(getHtml());
-    if (getHtmlErr) throw getHtmlErr;
+      })
+    );
+    if (convertHtmlErr) throw convertHtmlErr;
     if (!html) throw "convert fail, HTML string is null";
     const $ = cheerio.load("<body>" + html + "</body>");
     let fundCodesArray = [];
